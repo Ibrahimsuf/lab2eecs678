@@ -3,10 +3,12 @@
 #include <string.h>    /* memset                                         */
 #include <unistd.h>    /* standard unix functions, like getpid()         */
 #include <signal.h>    /* signal name macros, and the signal() prototype */
+#include <stdbool.h>                                         
 
 /* first, define the Ctrl-C counter, initialize it with zero. */
 int ctrl_c_count = 0;
 int got_response = 0;
+bool answered_alarm = 0;
 #define CTRL_C_THRESHOLD  5 
 
 /* the Ctrl-C signal handler */
@@ -20,9 +22,12 @@ void catch_int(int sig_num)
     /* prompt the user to tell us if to really
      * exit or not */
     printf("\nReally exit? [Y/n]: ");
+    alarm(3);
+    answered_alarm = 0;
     fflush(stdout);
     fgets(answer, sizeof(answer), stdin);
     if (answer[0] == 'n' || answer[0] == 'N') {
+      answered_alarm = 1;
       printf("\nContinuing\n");
       fflush(stdout);
       /* 
@@ -52,8 +57,10 @@ void catch_tstp(int sig_num)
 /* If the user RESPONDEDS before the alarm time elapses, the alarm should be cancelled */
 //YOUR CODE
 void alarm_handler(int sig_num) {
-  printf("User taking too long to respond. Exiting...\n");
-  exit(0);
+  if (answered_alarm == 0) {
+    printf("User taking too long to respond. Exiting...\n");
+    exit(0);
+  }
 }
 
 int main(int argc, char* argv[])
@@ -73,21 +80,25 @@ int main(int argc, char* argv[])
   /* setup mask_set - fill up the mask_set with all the signals to block*/
   //YOUR CODE
   
-  sigemptyset(&mask_set);
-  sigaddset(&mask_set, SIGINT); 
+  // sigemptyset(&mask_set);
+  // sigaddset(&mask_set, SIGINT); 
   
   /* STEP - 4 (10 points) */
   /* ensure in the mask_set that the alarm signal does not get blocked while in another signal handler */
   //YOUR CODE
-  sigprocmask(SIG_SETMASK, &mask_set, NULL);
+  // sigprocmask(SIG_SETMASK, &mask_set, NULL);
   /* STEP - 5 (20 points) */
   /* set signal handlers for SIGINT, SIGTSTP and SIGALRM */
   //YOUR CODE
-  
+  signal(SIGINT, catch_int);
+  signal(SIGTSTP, catch_tstp);
+  signal(SIGALRM, alarm_handler);
   /* STEP - 6 (10 points) */
   /* ensure that the program keeps running to receive the signals */
   //YOUR CODE
-
+  while (1) {
+    
+  }
   return 0;
 }
 
